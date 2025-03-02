@@ -36,7 +36,7 @@ export default function GradesPage() {
   useEffect(() => {
     const fetchGrades = async () => {
       try {    
-        const response = await gradesService.getCourseGrades();
+        const response = await gradesService.getStudentSemesterGrades();
         if (!response.ok) {
           throw new Error('Failed to fetch grades');
         }
