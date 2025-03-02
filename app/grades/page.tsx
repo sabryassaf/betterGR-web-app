@@ -1,18 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchWithAuth, getUserId } from '@/lib/auth';
 import { CourseGrades } from '@/components/grades/course-grades';
 import { gradesService } from '@/services/grades';
 
 interface ExamGrade {
-  course: string;
-  exam_type: string;
+  type: string;
   grade: string;
 }
 
 interface HomeworkGrade {
-  course: string;
   homework_number: string;
   grade: string;
 }
@@ -23,11 +20,6 @@ interface StudentCourseGrades {
   homeworks: HomeworkGrade[];
 }
 
-interface GradesResponse {
-  student_id: string;
-  courses: StudentCourseGrades[];
-}
-
 export default function GradesPage() {
   const [grades, setGrades] = useState<StudentCourseGrades[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,13 +27,50 @@ export default function GradesPage() {
 
   useEffect(() => {
     const fetchGrades = async () => {
-      try {    
+      try {
         const response = await gradesService.getStudentSemesterGrades();
         if (!response.ok) {
-          throw new Error('Failed to fetch grades');
+          throw new Error(`Failed to fetch grades: ${response.statusText}`);
         }
+        
         const data = await response.json();
-        setGrades(data?.courses || []);
+        console.log('Raw grades data:', data);
+        
+        if (data && data.grades && data.grades.length > 0) {
+          // Transform the flat list of grades into a grouped format by course
+          const courseMap = new Map();
+          
+          data.grades.forEach(grade => {
+            if (!courseMap.has(grade.courseID)) {
+              courseMap.set(grade.courseID, {
+                course_id: grade.courseID,
+                exams: [],
+                homeworks: []
+              });
+            }
+            
+            const courseData = courseMap.get(grade.courseID);
+            
+            if (grade.gradeType.toLowerCase().includes('exam')) {
+              courseData.exams.push({
+                type: grade.gradeType,
+                grade: grade.gradeValue
+              });
+            } else if (grade.gradeType.toLowerCase().includes('homework')) {
+              courseData.homeworks.push({
+                homework_number: grade.itemID,
+                grade: grade.gradeValue
+              });
+            }
+          });
+          
+          const formattedGrades = Array.from(courseMap.values());
+          console.log('Transformed grades:', formattedGrades);
+          setGrades(formattedGrades);
+        } else {
+          console.log('No grades data found in response:', data);
+          setGrades([]);
+        }
       } catch (err) {
         console.error('Error fetching grades:', err);
         setError('Failed to load grades. Please try again later.');
@@ -74,10 +103,11 @@ export default function GradesPage() {
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">My Grades</h1>
       <div className="space-y-6">
-        {Array.isArray(grades) && grades.map((course) => (
-          <CourseGrades key={course.course_id} course={course} />
-        ))}
-        {(!grades || grades.length === 0) && (
+        {Array.isArray(grades) && grades.length > 0 ? (
+          grades.map((course) => (
+            <CourseGrades key={course.course_id} course={course} />
+          ))
+        ) : (
           <div className="text-center text-muted-foreground">
             No grades available.
           </div>
@@ -85,4 +115,4 @@ export default function GradesPage() {
       </div>
     </div>
   );
-} 
+}

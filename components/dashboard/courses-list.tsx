@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchWithAuth } from '@/lib/auth';
 import { studentService } from "@/services/students";
+import { courseService } from "@/services/courses";
 
 interface Course {
   id: string;
@@ -21,7 +22,7 @@ export function CoursesList() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await studentService.getStudentCourses();
+        const response = await courseService.getStudentCourses();
         if (!response.ok) {
           throw new Error('Failed to fetch courses');
         }

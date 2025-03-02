@@ -1,5 +1,4 @@
-import { fetchWithAuth } from '@/lib/auth';
-import { studentService } from './students';
+import { fetchWithAuth, getUserId } from '@/lib/auth';
 import { Course_title } from './students';
 
 export interface Course {
@@ -42,11 +41,16 @@ export const courseService = {
   getAnnouncement: (courseId: string, announcementId: string) => 
     fetchWithAuth(`/courses/${courseId}/announcements/${announcementId}`),
 
+  getStudentCourses: async () => {
+    return fetchWithAuth(`/courses/students/${getUserId()}`);
+  },
+
   getAllAnnouncements: async (): Promise<AnnouncementResponse[]> => {
-    const response = await studentService.getStudentCourses();
+    const response = await courseService.getStudentCourses();
     const courses = await response.json() as Course_title[];
     const announcements = await Promise.all(
       courses.map(async course => {
+        console.log(course.id);
         const response = await fetchWithAuth(`/courses/${course.id}/announcements`);
         return response.json();
       })
