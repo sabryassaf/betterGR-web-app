@@ -37,12 +37,14 @@ export interface HomeworkGrade {
 
 export const gradesService = {
   getStudentSemesterGrades: async () => {
-    // Return raw response so the component can handle parsing
-    return fetchWithAuth(`/grades/${getUserId()}/${getSemester()}`);
+    const semester = getSemester();
+    const studentId = getUserId();
+    return fetchWithAuth(`/grades/${semester}/${studentId}`);
   },
 
   getStudentCourseGrades: async (courseId: string) => {
-    // Return raw response so the component can handle parsing
-    return fetchWithAuth(`/grades/${getUserId()}/${courseId}`);
+    const semester = getSemester();
+    const studentId = getUserId();
+    return fetchWithAuth(`/grades/${semester}/${studentId}/${courseId}`);
   },
 };

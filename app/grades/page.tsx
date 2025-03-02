@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { CourseGrades } from '@/components/grades/course-grades';
-import { gradesService } from '@/services/grades';
+import { gradesService, SingleGrade } from '@/services/grades';
 
 interface ExamGrade {
   type: string;
@@ -29,6 +29,8 @@ export default function GradesPage() {
     const fetchGrades = async () => {
       try {
         const response = await gradesService.getStudentSemesterGrades();
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
           throw new Error(`Failed to fetch grades: ${response.statusText}`);
         }
@@ -36,11 +38,12 @@ export default function GradesPage() {
         const data = await response.json();
         console.log('Raw grades data:', data);
         
-        if (data && data.grades && data.grades.length > 0) {
+        // Check if the data contains grades array from the gRPC response
+        if (data && data.grades && Array.isArray(data.grades)) {
           // Transform the flat list of grades into a grouped format by course
-          const courseMap = new Map();
+          const courseMap = new Map<string, StudentCourseGrades>();
           
-          data.grades.forEach(grade => {
+          data.grades.forEach((grade: SingleGrade) => {
             if (!courseMap.has(grade.courseID)) {
               courseMap.set(grade.courseID, {
                 course_id: grade.courseID,
@@ -50,7 +53,9 @@ export default function GradesPage() {
             }
             
             const courseData = courseMap.get(grade.courseID);
+            if (!courseData) return;
             
+            // Handle different grade types
             if (grade.gradeType.toLowerCase().includes('exam')) {
               courseData.exams.push({
                 type: grade.gradeType,
@@ -68,12 +73,12 @@ export default function GradesPage() {
           console.log('Transformed grades:', formattedGrades);
           setGrades(formattedGrades);
         } else {
-          console.log('No grades data found in response:', data);
+          console.log('No grades data found in response or invalid format:', data);
           setGrades([]);
         }
       } catch (err) {
         console.error('Error fetching grades:', err);
-        setError('Failed to load grades. Please try again later.');
+        setError(`Failed to load grades. Please try again later. ${err instanceof Error ? err.message : ''}`);
         setGrades([]);
       } finally {
         setIsLoading(false);

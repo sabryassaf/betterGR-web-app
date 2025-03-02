@@ -11,6 +11,14 @@ export interface Course {
   homework: string[];
 }
 
+// Add a simpler interface for the course data returned by the getStudentCourses API
+interface StudentCourse {
+  id: string;
+  name: string;
+  semester: string;
+  description?: string;
+}
+
 export interface Announcement {
   id: string;
   courseId: string;
@@ -45,13 +53,24 @@ export const courseService = {
     return fetchWithAuth(`/courses/students/${getUserId()}`);
   },
 
-  getAllAnnouncements: async (): Promise<AnnouncementResponse[]> => {
+  getAllAnnouncements: async (): Promise<Announcement[]> => {
     const response = await courseService.getStudentCourses();
-    const courses = await response.json() as Course_title[];
+    if (!response.ok) {
+      throw new Error(`Failed to fetch courses: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.courses || !Array.isArray(data.courses)) {
+      throw new Error('Invalid course data received');
+    }
+    
+    // iterate over each course id and fetch the announcements.
     const announcements = await Promise.all(
-      courses.map(async course => {
-        console.log(course.id);
-        const response = await fetchWithAuth(`/courses/${course.id}/announcements`);
+      data.coursesIDs.map(async (courseID: string) => {
+        console.log("here");
+        const response = await fetchWithAuth(`/courses/${courseID}/announcements`);
+        console.log("response: ", response);
         return response.json();
       })
     );

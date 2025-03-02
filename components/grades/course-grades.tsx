@@ -1,11 +1,9 @@
 interface ExamGrade {
-  course: string;
-  exam_type: string;
+  type: string;
   grade: string;
 }
 
 interface HomeworkGrade {
-  course: string;
   homework_number: string;
   grade: string;
 }
@@ -48,7 +46,7 @@ export function CourseGrades({ course }: { course: StudentCourseGrades }) {
             course.exams.map((exam, index) => (
               <div key={index} className="flex items-center h-10 bg-muted/50 rounded-md">
                 <div className="w-48 px-3">
-                  <span className="font-medium">{exam.exam_type}</span>
+                  <span className="font-medium">{exam.type}</span>
                   <span className="ml-2 text-sm text-muted-foreground">
                   </span>
                 </div>

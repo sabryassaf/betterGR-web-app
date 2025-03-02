@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { courseService } from '@/services/courses';
 import { studentService } from '@/services/students';
 import { Announcement } from '@/services/courses';
+import { fetchWithAuth } from '@/lib/auth';
 
 export function RecentAnnouncements() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -15,20 +16,18 @@ export function RecentAnnouncements() {
     async function loadAnnouncements() {
       try {
         const response = await courseService.getAllAnnouncements();
-        const parsedAnnouncements = response.map(item => {
-          try {
-            const announcementData = JSON.parse(item.announcement);
-            return {
-              ...announcementData,
-              courseId: item.course_id
-            };
-          } catch (e) {
-            console.error('Failed to parse announcement:', e);
-            return null;
-          }
-        }).filter((a): a is Announcement => a !== null);
+        console.log("response: ", response);
         
-        setAnnouncements(parsedAnnouncements);
+        console.log("here");
+        // iterate over each course get the announcements.
+        const announcements = await Promise.all(
+          response.map(async (course: any) => {
+            const response = await fetchWithAuth(`/courses/${course.id}/announcements`);
+            return response.json();
+          })
+        );
+        console.log("announcements: ", announcements);
+        setAnnouncements(announcements);
       } catch (error) {
         console.error('Failed to load announcements:', error);
       } finally {
