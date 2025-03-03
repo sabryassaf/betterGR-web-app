@@ -74,7 +74,7 @@ export function RecentAnnouncements() {
               >
                 <div className="flex flex-col space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="font-medium">Course {announcement.courseId}</p>
+                    <p className="font-medium">{announcement.course_name} {announcement.courseId}</p>
                   </div>
                   <p className="mt-2 text-sm">{announcement.content}</p>
                 </div>

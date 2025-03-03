@@ -22,6 +22,7 @@ interface StudentCourse {
 // Match the actual API response structure from the protobuf definition
 export interface Announcement {
   id: string;
+  course_name: string;
   courseId: string;
   title: string;
   content: string;
@@ -33,6 +34,12 @@ interface ApiAnnouncement {
   AnnouncementID?: string;
   AnnouncementTitle?: string;
   AnnouncementContent?: string;
+}
+
+export interface courseAnnouncement {
+  course_id: string;
+  course_name: string;
+  announcments: Announcement[];
 }
 
 interface AnnouncementResponse {
@@ -101,6 +108,7 @@ export const courseService = {
                 return {
                   id: announcement.AnnouncementID || `${course.id}-announcement-${index}`,
                   courseId: course.id,
+                  course_name: course.name,
                   title: announcement.AnnouncementTitle || 'Untitled Announcement',
                   content: announcement.AnnouncementContent || '',
                   createdAt: new Date().toISOString()
