@@ -11,23 +11,14 @@ import { fetchWithAuth } from '@/lib/auth';
 export function RecentAnnouncements() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadAnnouncements() {
       try {
         const response = await courseService.getAllAnnouncements();
-        console.log("response: ", response);
-        
-        console.log("here");
-        // iterate over each course get the announcements.
-        const announcements = await Promise.all(
-          response.map(async (course: any) => {
-            const response = await fetchWithAuth(`/courses/${course.id}/announcements`);
-            return response.json();
-          })
-        );
-        console.log("announcements: ", announcements);
-        setAnnouncements(announcements);
+        setAnnouncements(response);
+        console.log(response);
       } catch (error) {
         console.error('Failed to load announcements:', error);
       } finally {
@@ -39,7 +30,33 @@ export function RecentAnnouncements() {
   }, []);
 
   if (loading) {
-    return <div>Loading announcements...</div>;
+    return (
+      <Card className="col-span-1">
+        <CardHeader>
+          <CardTitle>Recent Announcements</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <p className="text-muted-foreground">Loading announcements...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="col-span-1">
+        <CardHeader>
+          <CardTitle>Recent Announcements</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <p className="text-red-500">{error}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -58,7 +75,6 @@ export function RecentAnnouncements() {
                 <div className="flex flex-col space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="font-medium">Course {announcement.courseId}</p>
-                    <p className="text-sm text-muted-foreground">{announcement.title}</p>
                   </div>
                   <p className="mt-2 text-sm">{announcement.content}</p>
                 </div>

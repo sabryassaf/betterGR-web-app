@@ -19,12 +19,20 @@ interface StudentCourse {
   description?: string;
 }
 
+// Match the actual API response structure from the protobuf definition
 export interface Announcement {
   id: string;
   courseId: string;
   title: string;
   content: string;
-  createdAt: string;
+  createdAt?: string;
+}
+
+// API response type for announcements
+interface ApiAnnouncement {
+  AnnouncementID?: string;
+  AnnouncementTitle?: string;
+  AnnouncementContent?: string;
 }
 
 interface AnnouncementResponse {
@@ -54,27 +62,64 @@ export const courseService = {
   },
 
   getAllAnnouncements: async (): Promise<Announcement[]> => {
-    const response = await courseService.getStudentCourses();
-    if (!response.ok) {
-      throw new Error(`Failed to fetch courses: ${response.status}`);
+    try {
+      const response = await courseService.getStudentCourses();
+      if (!response.ok) {
+        throw new Error(`Failed to fetch courses: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.courses || !Array.isArray(data.courses)) {
+        throw new Error('Invalid course data received');
+      }
+      
+      // Use the courses array that contains complete objects
+      const courses = data.courses as StudentCourse[];
+      
+      // Collect announcements with better error handling
+      const allAnnouncements: Announcement[] = [];
+      
+      await Promise.all(
+        courses.map(async (course: StudentCourse) => {
+          try {
+            console.log(`Fetching announcements for course: ${course.id} (${course.name})`);
+            const response = await fetchWithAuth(`/courses/${course.id}/announcements`);
+            
+            if (!response.ok) {
+              console.error(`Failed to fetch announcements for course ${course.id}: ${response.status}`);
+              return;
+            }
+            
+            const data = await response.json();
+            console.log(`Announcements data for course ${course.id}:`, data);
+            
+            // Check if data has the correct structure
+            if (data && data.announcements && Array.isArray(data.announcements)) {
+              // Transform each announcement to match our interface
+              const courseAnnouncements = data.announcements.map((announcement: ApiAnnouncement, index: number) => {
+                return {
+                  id: announcement.AnnouncementID || `${course.id}-announcement-${index}`,
+                  courseId: course.id,
+                  title: announcement.AnnouncementTitle || 'Untitled Announcement',
+                  content: announcement.AnnouncementContent || '',
+                  createdAt: new Date().toISOString()
+                };
+              });
+              
+              allAnnouncements.push(...courseAnnouncements);
+            }
+          } catch (error) {
+            console.error(`Error fetching announcements for course ${course.id}:`, error);
+          }
+        })
+      );
+      
+      return allAnnouncements;
+    } catch (error) {
+      console.error('Error in getAllAnnouncements:', error);
+      return [];
     }
-    
-    const data = await response.json();
-    
-    if (!data.courses || !Array.isArray(data.courses)) {
-      throw new Error('Invalid course data received');
-    }
-    
-    // iterate over each course id and fetch the announcements.
-    const announcements = await Promise.all(
-      data.coursesIDs.map(async (courseID: string) => {
-        console.log("here");
-        const response = await fetchWithAuth(`/courses/${courseID}/announcements`);
-        console.log("response: ", response);
-        return response.json();
-      })
-    );
-    return announcements.flat();
   },
 
   // Course Materials
