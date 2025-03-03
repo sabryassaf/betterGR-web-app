@@ -10,6 +10,7 @@ interface HomeworkGrade {
 
 interface StudentCourseGrades {
   course_id: string;
+  course_name?: string;
   exams?: ExamGrade[];
   homeworks?: HomeworkGrade[];
 }
@@ -36,7 +37,10 @@ export function CourseGrades({ course }: { course: StudentCourseGrades }) {
 
   return (
     <div className="rounded-lg border bg-card p-6 mb-6">
-      <h2 className="text-2xl font-semibold mb-4">Course {course.course_id}</h2>
+      <h2 className="text-2xl font-semibold mb-4">
+        {course.course_name || course.course_id}
+      </h2>
+
       
       {/* Exams Section */}
       <div className="mb-4">

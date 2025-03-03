@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CourseGrades } from '@/components/grades/course-grades';
 import { gradesService, SingleGrade } from '@/services/grades';
+import { courseService } from '@/services/courses';
 
 interface ExamGrade {
   type: string;
@@ -16,6 +17,7 @@ interface HomeworkGrade {
 
 interface StudentCourseGrades {
   course_id: string;
+  course_name?: string;
   exams: ExamGrade[];
   homeworks: HomeworkGrade[];
 }
@@ -28,25 +30,46 @@ export default function GradesPage() {
   useEffect(() => {
     const fetchGrades = async () => {
       try {
-        const response = await gradesService.getStudentSemesterGrades();
-        console.log('Response status:', response.status);
+        // Fetch both grades and courses
+        const [gradesResponse, coursesResponse] = await Promise.all([
+          gradesService.getStudentSemesterGrades(),
+          courseService.getStudentCourses()
+        ]);
         
-        if (!response.ok) {
-          throw new Error(`Failed to fetch grades: ${response.statusText}`);
+        console.log('Grades Response status:', gradesResponse.status);
+        console.log('Courses Response status:', coursesResponse.status);
+        
+        if (!gradesResponse.ok) {
+          throw new Error(`Failed to fetch grades: ${gradesResponse.statusText}`);
+        }
+        if (!coursesResponse.ok) {
+          throw new Error(`Failed to fetch courses: ${coursesResponse.statusText}`);
         }
         
-        const data = await response.json();
-        console.log('Raw grades data:', data);
+        const gradesData = await gradesResponse.json();
+        const coursesData = await coursesResponse.json();
+        
+        console.log('Raw grades data:', gradesData);
+        console.log('Raw courses data:', coursesData);
+        
+        // Create a map of course IDs to course names
+        const courseNameMap = new Map();
+        if (coursesData && coursesData.courses && Array.isArray(coursesData.courses)) {
+          coursesData.courses.forEach((course: { id: string, name: string }) => {
+            courseNameMap.set(course.id, course.name);
+          });
+        }
         
         // Check if the data contains grades array from the gRPC response
-        if (data && data.grades && Array.isArray(data.grades)) {
+        if (gradesData && gradesData.grades && Array.isArray(gradesData.grades)) {
           // Transform the flat list of grades into a grouped format by course
           const courseMap = new Map<string, StudentCourseGrades>();
           
-          data.grades.forEach((grade: SingleGrade) => {
+          gradesData.grades.forEach((grade: SingleGrade) => {
             if (!courseMap.has(grade.courseID)) {
               courseMap.set(grade.courseID, {
                 course_id: grade.courseID,
+                course_name: courseNameMap.get(grade.courseID),
                 exams: [],
                 homeworks: []
               });
@@ -73,11 +96,11 @@ export default function GradesPage() {
           console.log('Transformed grades:', formattedGrades);
           setGrades(formattedGrades);
         } else {
-          console.log('No grades data found in response or invalid format:', data);
+          console.log('No grades data found in response or invalid format:', gradesData);
           setGrades([]);
         }
       } catch (err) {
-        console.error('Error fetching grades:', err);
+        console.error('Error fetching data:', err);
         setError(`Failed to load grades. Please try again later. ${err instanceof Error ? err.message : ''}`);
         setGrades([]);
       } finally {
